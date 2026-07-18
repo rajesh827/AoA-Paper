@@ -47,6 +47,10 @@ With the growing popularity of online platforms, social networks, gaming service
 
 To address these issues, various algorithms and data structures have been developed for generation and verification of usernames. Even though database indexing guarantees efficiency and accuracy, using the database alone can make the system inefficient due to an increased workload. That's why additional techniques such as Bloom Filters and distributed hashing mechanisms are used to improve scalability and performance in large-scale systems. Bloom filters are probabilistic algorithms which allow for quick membership tests and reduce database lookups by a huge margin \cite{b1,b2}. Similarly, consistent hashing allows for efficient mapping of user records to multiple servers and greatly reduces data shuffling when new servers join or leave the network \cite{b3}. These are some of the mechanisms that make it possible to deal with username verification more efficiently.
 
+In case of username generation, there are a number of methods used to generate unique and user-friendly usernames. These include Random Suffix Generation where random numbers or alphanumeric characters are appended to the usernames in order to minimize collisions. There is also the Snowflake-based approach which helps in generating unique identifiers in a distributed computing environment and can be applied in the generation of usernames to guarantee uniqueness. Lastly, Trie-based approaches help in prefix search and generation of usernames based on user-specified prefixes such that the user is presented with usernames similar to what he/she wants.
+
+The research focuses on conducting a comparative study of algorithms for generating unique usernames and verifying their uniqueness. Various methods will be examined in terms of their effectiveness, scalability, ability to ensure uniqueness, efficiency, and applicability in large-scale systems. The results of this research can be useful for choosing an appropriate solution to username management for contemporary web applications. 
+
 
 
 
