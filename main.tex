@@ -52,12 +52,11 @@ Counting Bloom Filters, which uses small counters instead of bits to allow delet
 
 Ramabaja and Avdullahu took this line of research even further with their work on the Distributed Bloom Filter \cite{b2}. It is mostly intended to address membership scalability issues as well as decrease communication overhead of a distributed system when nodes have their own membership and there is no central node to check against. Rather than distributing the same filter to all peers, they developed a method in which nodes that communicate are assigned a unique filter for each communication pair. This enables the absence of an element to be detected by one of the peers with high probability even if the filters in themselves have a very high rate of false positives. From their experiments, it became clear that when a network of nodes uses this method, it takes only a few communication rounds to complete convergence with the set, whereas the network using identically mapped standard Bloom filters either does not converge at all or converges slowly because each node repeatedly encounters the same false positives. The above two papers show the effectiveness of Bloom Filters in the verification of usernames. This is because through them most of the usernames can be verified without accessing the main database. In addition, the distributed version of Bloom Filters can help to verify usernames across various servers and caches.
 
-
 \subsection{Distributed Uniqueness and Load Distribution}
 The second topic revolves around maintaining consistency and
 balance within the system while spreading it across multiple machines. Karger et al. introduced Consistent Hashing as a means of distributing the data across a changing set of servers without forcing clients to have up-to-date information about active servers \cite{b3}. In comparison to traditional hashing algorithms, where addition or deletion of servers causes most of the keys to be rehashed, consistent hashing limits the ratio of keys that need to be moved on addition or deletion of a server, and provides formal proofs of that fact as well as some guarantees of load balance and fault tolerance. This feature makes consistent hashing applicable to routing username verification queries to correct shard, since it prevents the complete rehashing caused by changes in the cluster size.
 
-Chinthareddy presented stateless Snowflake method for generating IDs which is suitable to cloud-native ecosystems \cite{b5}. The problem was without a centralized control or manually assigned worker numbers, there was no way to ensure uniqueness globally. The proposed stateless
+Chinthareddy presented stateless Snowflake method for generating IDs which is suitable to cloud-native ecosystems \cite{b4}. The problem was without a centralized control or manually assigned worker numbers, there was no way to ensure uniqueness globally. The proposed stateless
 Snowflake generates a node ID from its private IP and not from an external coordination service allowing to produce unique, roughly timestamped, IDs at high rates despite of automatic creation and destruction of instances under autoscaling. As seen from the reported results, this method allows sustaining the same throughput rate as a
 traditional coordinated Snowflake installation but gets rid of the
 dependence on an external leasing service. Consistent hashing solves
@@ -66,16 +65,17 @@ cluster, whereas stateless Snowflake solves the task of creating a
 unique ID on a particular machine without requesting any permission from other machines. So, they both provide means for a distributed
 system to generate and direct unique IDs without coordination.
 
-
 \subsection{Prefix-Based and Generative Suggestion}
+The third topic revolves around how a system ensures that a name chosen by a user is unique and attractive rather than verifying one given name.
+Fredkin introduced the Trie as a type of tree-like structure which allows for a really fast storage and retrieval of strings \cite{b5}. This makes Tries suitable for performing prefix searches, and since their invention, they have been used in various applications, including auto-completion, dictionaries, and recommendations. Within username management, Trie-based systems allow a system to immediately locate other possible usernames having the same required prefix. For example, if a user wants a certain name that is already occupied, a hash-based verification structure can only verify its existence but couldn't suggest similar alternatives without additional indexing mechanisms.
+
+Bijary et al. presented Nominalist, an agentic system which can generate username suggestions with a combination of rule-based changes and inference from the large language model \cite{b6}. The proposed system consists of two agents: a creator agent and a reviewer agent. The creator agent uses a combination of pre-defined transformations, including suffix addition, dot notation, and underscore insertion, along with the output from the generative model. The reviewer agent then checks whether a username candidate is unique based on the database of already existing usernames and evaluates it on memorability, uniqueness, and typability scores. Finally, it provides the user with a ranked list of username suggestions. Unlike the Trie-based prefix suggestion, this approach aims at generating human-readable names that are culturally appropriate rather than names that are simply structurally related to the given prefix. Here, uniqueness verification is not the aim itself but the part of the process of generating and ranking potential names. This, combined with the Fredkin’s work, demonstrates that there are two distinct approaches to username suggestion that lie on the same spectrum. While a Trie provides a quick and deterministic way to find structurally similar alternatives, an agentic, LLM-based system sacrifices some latency and computation resources for more varied and context-aware username suggestions.
 
 
 
-Karger et al. proposed the concept of consistent hashing designed for effective distribution of data on several servers in a distributed environment \cite{b3}. In contrast to standard algorithms of hashing, which involve significant amount of work in redistribution of data when there is a change in number of nodes, Consistent Hashing reduces the need for redistribution and provides load balancing. It was proven that this algorithm increases scalability and improves performance of systems making it very appropriate for large scale storage and retrieval purposes. Nowadays Consistent Hashing is one of the most popular algorithms used in distributed databases, caches and clouds.
 
-Fredkin introduced the Trie as a type of tree-like structure which allows for a really fast storage and retrieval of strings \cite{b4}. It turns out that with the use of Tries, it is possible to perform searches based on prefixes very rapidly. In fact, the time taken to carry out the lookup operation depends mainly on the length of the string being searched for, irrespective of the number of strings that have been stored. Because of this property, Tries are found in a lot of applications such as autocomplete systems, dictionaries, and recommendation engine. In username handling, the Trie-based systems can find different usernames if the original one is already taken quickly.
 
-Chinthareddy presented stateless Snowflake method for generating IDs which is suitable to cloud-native ecosystems \cite{b5}. The problem was without a centralized control or manually assigned worker numbers, there was no way to ensure uniqueness globally. This research managed that problem of creating unique identifiers worldwide without a central control. The proposed solution was to create a unique ID which relies on network-based identity. Also, the method was able to do so with high speed and at the same time keep the system upscaling reliable. The findings showed that the Snowflake method, which is at the heart of generating IDs, is very powerful when applied to large-scale distributed systems. With such a system, collisions can be minimized without compromising the uniqueness of names.
+
 
 Though earlier work has been done on Bloom Filters, Distributed Bloom Filters, Consistent Hashing, Trie structure, and Snowflake generation technique, most of the work is based on each individual algorithm separately or even in particular areas like distributed storage, caching, authentication mechanism, etc. But there is little work on comparing username generation algorithms and verification algorithms in a collective way. Thus this paper tries to fill this void by performing the comparative study on Bloom Filter, Consistent Hashing, Database index search, Snowflake generation, Trie structure suggestion generation, and Random Suffix Generation techniques.
 
@@ -89,9 +89,17 @@ Though earlier work has been done on Bloom Filters, Distributed Bloom Filters, C
 
 \bibitem{b3} D. Karger, E. Lehman, T. Leighton, M. Levine, D. Lewin, and R. Panigrahy, ``Consistent Hashing and Random Trees: Distributed Caching Protocols for Relieving Hot Spots on the World Wide Web,'' in \emph{Proc. 29th Annual ACM Symposium on Theory of Computing (STOC)}, El Paso, TX, USA, 1997, pp. 654--663.
 
-\bibitem{b4} E. Fredkin, ``Trie Memory,'' \textit{Communications of the ACM}, vol. 3, no. 9, pp. 490--499, Sep. 1960.
+\bibitem{b4} M. R. Chinthareddy, ``Stateless Snowflake: A Cloud-Agnostic Distributed ID Generator Using Network-Derived Identity,'' \textit{arXiv preprint arXiv:2512.11643}, 2025.
 
-\bibitem{b5} M. R. Chinthareddy, ``Stateless Snowflake: A Cloud-Agnostic Distributed ID Generator Using Network-Derived Identity,'' \textit{arXiv preprint arXiv:2512.11643}, 2025.
+\bibitem{b5} E. Fredkin, ``Trie Memory,'' \textit{Communications of the ACM}, vol. 3, no. 9, pp. 490--499, Sep. 1960.
+
+\bibitem{b6} F. Bijary, M. Ebadpour, and A. Tajbakhsh, ``Agentic Username Suggestion and Multimodal Gender Detection in Online Platforms: Introducing the PNGT-26K Dataset,'' \textit{arXiv preprint arXiv:2509.11136}, Sep. 2025.
+
+
+
+
+
+
 
 \end{thebibliography}
 
