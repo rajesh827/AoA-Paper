@@ -71,14 +71,13 @@ Fredkin introduced the Trie as a type of tree-like structure which allows for a 
 
 Bijary et al. presented Nominalist, an agentic system which can generate username suggestions with a combination of rule-based changes and inference from the large language model \cite{b6}. The proposed system consists of two agents: a creator agent and a reviewer agent. The creator agent uses a combination of pre-defined transformations, including suffix addition, dot notation, and underscore insertion, along with the output from the generative model. The reviewer agent then checks whether a username candidate is unique based on the database of already existing usernames and evaluates it on memorability, uniqueness, and typability scores. Finally, it provides the user with a ranked list of username suggestions. Unlike the Trie-based prefix suggestion, this approach aims at generating human-readable names that are culturally appropriate rather than names that are simply structurally related to the given prefix. Here, uniqueness verification is not the aim itself but the part of the process of generating and ranking potential names. This, combined with the Fredkin’s work, demonstrates that there are two distinct approaches to username suggestion that lie on the same spectrum. While a Trie provides a quick and deterministic way to find structurally similar alternatives, an agentic, LLM-based system sacrifices some latency and computation resources for more varied and context-aware username suggestions.
 
+\subsection{Synthesis}
+These three concepts address different aspects of the same problem,
+with each offering a different trade-off between the dimensions that are key for username management in real-life scenarios including latency, memory footprint, collision rate, human readability, and suitability for distributed deployment. The Bloom filter and its
+distributed version guarantee an extremely low latency
+and a small memory overhead \cite{b1,b2}. Only a bit array and a few hash functions need to be stored in memory. However, these approaches are subject to false positives, resulting in a non-zero collision rate. Consistent Hashing does not perform a membership test but decides which node to ask when minimal disruption in case of changes in the cluster takes place \cite{b3}. The Stateless Snowflake technique generates usernames with extremely low probability of collisions and no coordination costs\cite{b4}. This makes it ideal for distributive deployment, although it outputs either a numerical or alphanumeric token instead of a human-readable name. Tries provide fast and space-efficient exact matches and prefix queries proportional to the size of the query rather than the size of the data \cite{b5}. But their memory consumption for storing a large trie can be larger than the corresponding Bloom filter for the same set. Lastly, the agentic approach based on an LLM is the only one among all five approaches that considers the human readability of usernames \cite{b6}. It can generate usernames that are more natural and user-friendly. However, it introduces additional latency and computational cost during username generation. Further, it relies on an external model or API, creating a dependency that is not present in any other approaches.
 
-
-
-
-
-
-Though earlier work has been done on Bloom Filters, Distributed Bloom Filters, Consistent Hashing, Trie structure, and Snowflake generation technique, most of the work is based on each individual algorithm separately or even in particular areas like distributed storage, caching, authentication mechanism, etc. But there is little work on comparing username generation algorithms and verification algorithms in a collective way. Thus this paper tries to fill this void by performing the comparative study on Bloom Filter, Consistent Hashing, Database index search, Snowflake generation, Trie structure suggestion generation, and Random Suffix Generation techniques.
-
+Though earlier work has been done on these methods, no existing work compares these methods directly against one another along this shared set of dimensions. The Bloom Filter and Consistent Hashing literature analyzes its contributions within the general setting of caching and set membership problems. The Stateless Snowflake system analyzes its proposal within the context of container orchestration whereas the Trie literature analyzes its structure within the general context of information storage and retrieval. The Agentic Suggestion approach focuses its evaluation on gender detection and dataset properties rather than on the systems level cost of implementing it at scale. None of these analyses were performed using the particular load profile introduced by username registration. This paper fills this gap by comparing Bloom Filters, Consistent Hashing, Snowflake-like Suffix  Generation, Trie-based Suggestion, Random Suffix generation and Agentic Username Generation using username-specific load profiles.
 
 
 
@@ -94,12 +93,6 @@ Though earlier work has been done on Bloom Filters, Distributed Bloom Filters, C
 \bibitem{b5} E. Fredkin, ``Trie Memory,'' \textit{Communications of the ACM}, vol. 3, no. 9, pp. 490--499, Sep. 1960.
 
 \bibitem{b6} F. Bijary, M. Ebadpour, and A. Tajbakhsh, ``Agentic Username Suggestion and Multimodal Gender Detection in Online Platforms: Introducing the PNGT-26K Dataset,'' \textit{arXiv preprint arXiv:2509.11136}, Sep. 2025.
-
-
-
-
-
-
 
 \end{thebibliography}
 
