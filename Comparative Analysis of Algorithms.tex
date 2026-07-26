@@ -79,7 +79,9 @@ and a small memory overhead \cite{b1,b2}. Only a bit array and a few hash functi
 
 Though earlier work has been done on these methods, no existing work compares these methods directly against one another along this shared set of dimensions. The Bloom Filter and Consistent Hashing literature analyzes its contributions within the general setting of caching and set membership problems. The Stateless Snowflake system analyzes its proposal within the context of container orchestration whereas the Trie literature analyzes its structure within the general context of information storage and retrieval. The Agentic Suggestion approach focuses its evaluation on gender detection and dataset properties rather than on the systems level cost of implementing it at scale. None of these analyses were performed using the particular load profile introduced by username registration. This paper fills this gap by comparing Bloom Filters, Consistent Hashing, Snowflake-like Suffix  Generation, Trie-based Suggestion, Random Suffix generation and Agentic Username Generation using username-specific load profiles.
 
+\section{Methodology}
 
+\subsection{Theoretical Framework and Justification}
 
 \begin{thebibliography}{00}
 \bibitem{b1} L. Luo, D. Guo, R. T. B. Ma, O. Rottenstreich, and X. Luo, ``Optimizing Bloom Filter: Challenges, Solutions, and Comparisons,'' \emph{arXiv preprint arXiv:1804.04777}, 2018.
