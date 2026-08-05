@@ -96,18 +96,14 @@ For the verification methods, several metrics were collected at each corpus size
 For the distributed-deployment experiment, the key metric was the percentage of the routed keys that were reassigned to another node when increasing the cluster size from eight to nine nodes. Consistent hashing and modulo-hashing approaches were compared under these conditions. In addition, average and 95th-percentile latencies for routing requests to nodes were collected. For the username generation methods, four metrics were collected for each corpus size: number of attempts to produce the username, the success rate, time needed to produce the username, and readability of the generated username.
 
 \subsection{Data Collection Procedure}
-Since this study focuses on evaluating algorithms rather than human participants, no personal or identifiable user data was collected. Instead, a synthetic workload was generated in two stages for the experiments.
+Since this study focuses on evaluating algorithms rather than human participants, no personal or identifiable user data was collected. Instead publicly available datasets with Twitter usernames were used. Three such datasets of varying sizes, with 10,000, 100,000, and 1,000,000 Twitter usernames, respectively, were chosen for testing.
 
-The first step produced a set of 500,000 existing usernames,
-representing a pre-existing pool of registered users. Purely random strings were not used because they would result in lower collision rates than those found in real systems. Instead, usernames were generated from common first and last names following a Zipf-like distribution, which means that the usernames used a small number of
-common names more frequently than all others. Each of the generated
-usernames followed to one of a few patterns that can be found in
-the usernames from a real registration system: just a name, a name and
-last name combination, a name followed by a number, a name followed
-by the year of birth, or a name followed by a descriptive word such
-as "official" or "pro". The proportions assigned to these patterns and the range of numeric suffixes were adjusted iteratively to produce a realistic distribution of username collisions.
+The two data sets of 10,000 and 100,000 usernames were used diretly in the experiment. While, the 1,000,000 username dataset was used in two ways: in its entirety and as a source of sub-datasets of 50,000, 100,000, and 250,000 usernames. The latter was done by extracting the first usernames from the large dataset. The use of both the actual datasets and the sub-datasets from the largest dataset enabled the verification performance to be tested against increasing numbers of usernames.
 
-In the second step, a corpus containing 20,000 username request candidates was created in order to test the performance of username collision prevention. Some of the usernames were already present in the corpus, meaning that some of the users tried to register with already used names. Other usernames were created using the same patterns as the ones in the corpus. In order to make the tests as realistic as possible, an arrival time was assigned to each request. The majority of the requests was generated following an exponential distribution, but a small percentage of the requests was generated with shorter intervals between them to imitate times when there is more system activity. This can happen right after the platform was launched. For reproducibility, fixed random seeds were used for generating the datasets.
+A stream of 20,000 candidate requests was created using the 1,000,000-usernames dataset to be used for measuring latency and false positives for the verification experiment. Twenty percent of these requests consist of usernames that are direct samples from the dataset, representing the case where a user requests a username that is already taken. The other eighty percent of these requests consist of base names extracted from other entries in the dataset by removing trailing digits and separator-separated suffixes (such as underscores and periods), representing the name a user would have typed without an extra suffix. For the generation experiment, base names were extracted in the same manner from a random sample of each of the three datasets separately, so that generation performance on each scale can be
+measured relative to names taken from that dataset.
+
+
 
 
 \subsection{Data Processing and Analysis Tools}
