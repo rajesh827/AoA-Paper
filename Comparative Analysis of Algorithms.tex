@@ -33,11 +33,13 @@ nce080bct048@nce.edu.np}
 
 \begin{abstract}
 With growing user numbers on platforms the management of unique and user friendly usernames has become a challenge. Usernames systems need to be able to generate meaningful usernames, while also being able to check username availability rapidly and effectively handle many concurrent requests.
-A variety of algorithms have been proposed in literature to address these issues, however, these algorithms are mostly investigated individually and under specific circumstances and a single ``best'' username system algorithm to address a high-volume of users is difficult to pinpoint. In this study, six usernames generation techniques - Random Suffix Generation, Trie-based Suggestion, Snowflake-like Suffix Generation, Agentic Username Generation, Bloom Filter and Consistent Hashing are evaluated using varying username records sizes from 10,000 to 1,000,000. Tests were performed on a range of metrics including latency, memory usage, uniqueness, generation success rate, usability and distribution cost when generating and distributing username accounts across many distributed servers. All six usernames generation techniques were run on a similar environment so that each algorithm could be fairly tested against one another. This study sets out to compare each method, to investigate the pros and cons of each; while also investigating how each usernames generation technique performs under growing user numbers and which to use singly or in combination with other algorithms for managing large-scale username generation and verification systems. Username systems andusername generation algorithms play a vital role in modern platforms.
+A variety of algorithms have been proposed in literature to address these issues, however, these algorithms are mostly investigated individually and under specific circumstances and a single ``best'' username system algorithm to address a high-volume of users is difficult to pinpoint. In this study, six usernames generation techniques - Random Suffix Generation, Trie-based Suggestion, Snowflake-like Suffix Generation, Agentic Username Generation, Bloom Filter and Consistent Hashing are evaluated using varying username records sizes from 10,000 to 1,000,000. Tests were performed on a range of metrics including latency, memory usage, uniqueness, generation success rate, usability and distribution cost when generating and distributing username accounts across many distributed servers. All six usernames generation techniques were run on a similar environment so that each algorithm could be fairly tested against one another. This study sets out to compare each method, to investigate the pros and cons of each; while also investigating how each usernames generation technique performs under growing user numbers and which to use singly or in combination with other algorithms for managing large-scale username generation and verification systems. Username systems and username generation algorithms play a vital role in modern platforms.
 \end{abstract}
 
 \begin{IEEEkeywords}
-component, formatting, style, styling, insert.
+username generation, username verification, Bloom filter, consistent
+hashing, trie, distributed systems, collision rate, false-positive
+rate, scalability benchmarking
 \end{IEEEkeywords}
 
 
@@ -238,21 +240,21 @@ by the types of transformations used by Bijary et al. in their creator
 agent \cite{b6}. 
 
 This was done since integrating a live LLM call may introduce variability
-and non-deterministic outputs. Thus, the results achieved in this case with the agentic style approach need to be considered as an estimate of what such a language model might be able to achieve. especially at the 1,000,000 username corpus level, where per call LLM would have been prohibitively slow and expensive to run again. Thus, the results achieved in this case with the agentic style approach need to be considered as an estimate of what such a language model might be able to achieve. Indeed, an actual language model could provide a variety of more appropriate username proposals than any preset rules, yet this assumption was not tested in the current study. Indeed, an actual language model could provide a variety of more appropriate username proposals than any preset rules.
+and non-deterministic outputs. Thus, the results achieved in this case with the agentic style approach need to be considered as an estimate of what such a language model might be able to achieve. Indeed, an actual language model could provide a variety of more appropriate username proposals than any preset rules, yet this assumption was not tested in the current study. Indeed, an actual language model could provide a variety of more appropriate username proposals than any preset rules.
 
 After loading the datasets, the benchmarking framework ran each method and automatically measured the relevant data. Various performance metrics like construction time, memory usage, query latency, collision ratio, remapping time, success ratio, and readability were captured in the experiments automatically. The query latency was measured using Python’s high-resolution performance counter, whereas memory usage was calculated using Python’s built-in memory trace utility.
 
 Experimental results were saved in CSV files and analyzed using Python code. The analyzed data was then represented using graphs in order to analyze how the algorithms performed for varying corpus sizes. The results generated by this process were used to analyze performance trends of the methods being evaluated.
 
+In summary, this approach, comprising the six applied methods, along with the common evaluation framework and the practical datasets used, is intended to tackle directly the issues of collision and squatting of usernames encountered in practice \cite{b9}.
 
-\section{Results and Discussion}
+\section{Results}
 \subsection{Verification Performance}
 Figure~\ref{fig:memory} shows the maximum memory usage for the plain hash set, Bloom filter, and the trie on all six corpus sizes that have been examined. There is a clear difference between these values as the corpus size increases, since at a 1,000,000 usernames scale, the Bloom filter uses 1.14 MB, while the plain set uses 48.0 MB and the trie uses 1,079 MB, which are 41 times and 923 times lower, respectively. This difference will increase as the size grows, as opposed to decreasing, due to the linear growth of the Bloom filter's bit array size relative to the number of elements without any extra string storage per element, unlike the other two structures.
 \begin{figure}[h]
 \centering
 \includegraphics[width=\columnwidth]{figures/memory_vs_scale.png}
-\caption{Peak memory consumption vs. corpus scale for the three
-verification structures (log-scaled).}
+\caption{Peak memory consumption vs. corpus scale.}
 \label{fig:memory}
 \end{figure}
 
@@ -260,8 +262,7 @@ The average query latency for each structure is depicted in Figure~\ref{fig:late
 \begin{figure}[h]
 \centering
 \includegraphics[width=\columnwidth]{figures/latency_vs_scale.png}
-\caption{Average query latency vs. corpus scale for the three
-verification structures.}
+\caption{Average query latency vs. corpus scale.}
 \label{fig:latency}
 \end{figure}
 
@@ -269,8 +270,7 @@ As depicted in Figure~\ref{fig:fpr}, the false positive rate achieved by the Blo
 \begin{figure}[h]
 \centering
 \includegraphics[width=\columnwidth]{figures/false_positive_rate.png}
-\caption{Empirical Bloom filter false-positive rate vs. corpus scale,
-against the configured 1\% target.}
+\caption{Bloom filter false-positive rate vs. corpus scale.}
 \label{fig:fpr}
 \end{figure}
 
@@ -327,9 +327,7 @@ data movement and network traffic during cluster expansion.
 \begin{figure}[h]
 \centering
 \includegraphics[width=\columnwidth]{figures/remap_fraction.png}
-\caption{Fraction of keys remapped after adding a ninth node, for
-consistent hashing vs.\ naive modulo hashing, across routing-load
-scales.}
+\caption{Key remapping fraction: consistent hashing vs. naive modulo.}
 \label{fig:remap}
 \end{figure}
 
@@ -361,11 +359,7 @@ Figure~\ref{fig:gen_latency} shows average generation latency for all
 four methods at each of the three corpus sizes. Random suffix generation
 and Snowflake suffix generation remained the two fastest methods in terms
 of average latency under 10 $\mu$s for all three corpus sizes. The rule
-based approximation of the agentic method (refer Section~III-D)
-performed moderately slower than the above methods averaging between
-46--58 $\mu$s across all three corpus sizes due to its evaluation
-process of a fixed size candidate set that is not scale dependent.
-On the other hand, trie-based suggestion showed a much steeper
+based approximation of the agentic method performed moderately slower than the above methods averaging between 46--58 $\mu$s across all three corpus sizes due to its evaluation process of a fixed size candidate set that is not scale dependent. On the other hand, trie-based suggestion showed a much steeper
 increase with scale when compared to all other methods starting from
 12.5 $\mu$s average at 10,000 usernames, increasing to 110.9 $\mu$
 at 100,000 usernames, and then further to 2,218.4 $\mu$, nearly 2.2
@@ -402,7 +396,7 @@ guess will likely be taken.
 \centering
 \includegraphics[width=\columnwidth]{figures/gen_first_guess_collision_rate.png}
 \caption{First-guess collision rate by method and corpus scale
-(sequential-retry methods only).}
+.}
 \label{fig:gen_collision}
 \end{figure}
 
@@ -442,7 +436,9 @@ unless further optimization like prefix count compression or limitation
 is considered. In terms of readability, the rule-based approximation of
 the agentic method yielded the best score at each scale level while still being the faster method than trie suggestion at maximum scale considered as shown in Figure \ref{fig:gen_readability}.
 
-When all of these results are combined, it becomes evident that a workload-dependent approach should be recommended, rather than one optimal technique. In other words, a production registration system that seeks to ensure efficient performance with low memory usage and negative lookups needs to use a combination of Bloom filters and consistent hashing, with generation being done through the combination of a fast and collision-free method, like the Snowflake-style suffixing and readability-friendly approach, either based on the rule-based system used herein or LLM-based, depending on which one works better, being recommended first, with trie-based suggestions being reserved only for limited corpora.
+When all of these results are combined, it becomes evident that a workload-dependent approach should be recommended, rather than one optimal technique. In other words, a production registration system that seeks to ensure efficient performance with low memory usage. With regard to verification and routing, the findings suggest that Bloom filters and consistent hashing are the best options in terms of memory efficiency,scalability, and lookup performance. Username generation can involve the use of a fast and collision-resistant algorithm like the Snowflake algorithm suffix, along with a readable algorithm for enhanced quality of the username generated. In terms of the readability feature, it is possible to choose from two
+options, which include the rule-based method considered in this research paper or the LLM-based system. Trie-based proposals should be used only when
+working with small corpora due to increased memory usage.
 
 \begin{thebibliography}{00}
 \bibitem{b1} L. Luo, D. Guo, R. T. B. Ma, O. Rottenstreich, and X. Luo, ``Optimizing Bloom Filter: Challenges, Solutions, and Comparisons,'' \emph{arXiv preprint arXiv:1804.04777}, 2018.
@@ -466,6 +462,12 @@ pp. 25--35.
 \bibitem{b8} A. Kirsch and M. Mitzenmacher, ``Less Hashing, Same
 Performance: Building a Better Bloom Filter,'' \textit{Random
 Structures \& Algorithms}, vol. 33, no. 2, pp. 187--218, 2008.
+
+\bibitem{b9} A. Lepipas, A. Borzoo, E. De Cristofaro, and G. Stringhini,
+``Username Squatting on Online Social Networks: A Study on X,'' in
+\textit{Proc. 19th ACM Asia Conf. on Computer and Communications
+Security (ASIA CCS '24)}, Singapore, Jul. 2024, pp. 269--283,
+doi: 10.1145/3634737.3637637.
 
 \end{thebibliography}
 
