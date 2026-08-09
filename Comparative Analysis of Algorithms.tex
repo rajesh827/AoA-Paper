@@ -134,6 +134,23 @@ is expressed as
 which is the ratio of requests where the technique successfully produced
 a username within its attempt limit, not exceeding the limit without success.
 
+Readability was measured with the help of an automatic heuristic
+defined explicitly as below. Let a user name be of length $\ell$
+and contain $d$ digits along with the longest sequence of
+$r$ non-vowel characters such that the readability score is
+\begin{equation}
+\begin{split}
+R &= 0.4\left(1-\min\left(\frac{|\ell-10|}{10},1\right)\right) \\
+&\quad + 0.3\left(1-\min\left(\frac{1.5d}{\ell},1\right)\right) \\
+&\quad + 0.3\left(1-\min\left(\frac{r}{8},1\right)\right),
+\end{split}
+\end{equation}
+constrained to the range [0, 1], with each of the three
+weighted items rewarding a length close to 10 characters,
+punishing a high number of digit characters, and punishing long
+stretches of characters without vowels as a measure of
+pronounceability.
+
 \subsection{Data Collection Procedure}
 Since this study focuses on evaluating algorithms rather than human participants, no personal or identifiable user data was collected. Instead publicly available datasets with Twitter usernames were used. Three such datasets of varying sizes, with 10,000, 100,000, and 1,000,000 Twitter usernames, respectively, were chosen for testing. They were obtained from the Twitter Username Alias Dataset made available by McKelvey et al.\ \cite{b7}. It was originally assembled in support of research into aligning real names with self-selected online aliases on Twitter from Twitter user profiles. Every data file consists of one username per line, without any additional personal information or metadata beyond the username itself.
 
@@ -179,18 +196,191 @@ k = \max\left(1, \text{round}\left(\frac{m}{n}\ln 2\right)\right).
 For example, at $n = 1{,}000{,}000$ and $p = 0.01$, this yields
 $m \approx 9{,}585{,}059$ bits ($\approx 1.14$ MB) and $k = 7$ hash
 functions. Instead of directly calculating $k$ independent hash functions,
-the implementation adopts the double hashing method of  Kirsch and Mitzenmacher \cite{b1} to calculate all the $k$ hash values from two base hashes, MD5 and SHA-1, where $h_i(x) = (h_1(x) + i
+the implementation adopts the double hashing method of Kirsch and Mitzenmacher \cite{b1}. All $k$ hash values are calculated all from two base hashes, MD5 and SHA-1, where $h_i(x) = (h_1(x) + i
 \cdot h_2(x)) \bmod m$ for $i = 0, \dots, k-1$, thus eliminating the need for calculating seven different hash functions each time while retaining
 the property of independence essential for false-positive probability
-calculations.
+calculations. 
 
 Add-only is the policy of addition where the filter allows for insertion and membership test, but not deletion, such that once a username is inserted, it is impossible to delete it from the filter other than to re-create the entire structure, which is the limitation of the Bloom filter, which is not considered in this study, since no experiment of username deletion or account deletion was conducted. No updates to any inserted element were done at any time during the experiments; the filters were built just once per corpus size.
+
+The agentic-style generation method used in this study is a
+rule-based simulation of the LLM-based suggestion module mentioned
+by Nominalist \cite{b6}. No LLM API, weights, prompts, or sampling temperatures were used in the current generation experiments. The method, however, creates a fixed set of ten candidate usernames
+per request via deterministic, rule-based transformations of the
+base name. Transformations involve dot notation, underscores,
+a tag at the end like ``official'' or ``pro'', and an
+age-like number at the end. The implementation is inspired
+by the types of transformations used by Bijary et al. in their creator
+agent \cite{b6}. 
+
+This was done since integrating a live LLM call may introduce variability
+and non-deterministic outputs. Thus, the results achieved in this case with the agentic style approach need to be considered as an estimate of what such a language model might be able to achieve. especially at the 1,000,000 username corpus level, where per call LLM would have been prohibitively slow and expensive to run again. Thus, the results achieved in this case with the agentic style approach need to be considered as an estimate of what such a language model might be able to achieve. Indeed, an actual language model could provide a variety of more appropriate username proposals than any preset rules, yet this assumption was not tested in the current study. Indeed, an actual language model could provide a variety of more appropriate username proposals than any preset rules.
 
 After loading the datasets, the benchmarking framework ran each method and automatically measured the relevant data. Various performance metrics like construction time, memory usage, query latency, collision ratio, remapping time, success ratio, and readability were captured in the experiments automatically. The query latency was measured using Python’s high-resolution performance counter, whereas memory usage was calculated using Python’s built-in memory trace utility.
 
 Experimental results were saved in CSV files and analyzed using Python code. The analyzed data was then represented using graphs in order to analyze how the algorithms performed for varying corpus sizes. The results generated by this process were used to analyze performance trends of the methods being evaluated.
 
 
+\section{Results and Discussion}
+\subsection{Verification Performance}
+Figure~\ref{fig:memory} shows the maximum memory usage for the plain hash set, Bloom filter, and the trie on all six corpus sizes that have been examined. There is a clear difference between these values as the corpus size increases, since at a 1,000,000 usernames scale, the Bloom filter uses 1.14 MB, while the plain set uses 48.0 MB and the trie uses 1,079 MB, which are 41 times and 923 times lower, respectively. This difference will increase as the size grows, as opposed to decreasing, due to the linear growth of the Bloom filter's bit array size relative to the number of elements without any extra string storage per element, unlike the other two structures.
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{figures/memory_vs_scale.png}
+\caption{Peak memory consumption vs. corpus scale for the three
+verification structures (log-scaled).}
+\label{fig:memory}
+\end{figure}
+
+The average query latency for each structure is depicted in Figure~\ref{fig:latency}. The plain set gave the lowest query latencies (0.208--0.521$\mu$s) among all scales tested, while the trie structure gave an intermediate level (1.423--4.499 $\mu$s), and the Bloom filter had the largest (3.901--9.386 $\mu$s). The reason behind this is that the queries to the Bloom filter involve the calculation of multiple hash values, not just the dictionary lookups. This is the opposite order to the one in the memory requirements: the structure taking the least amount of memory space has the highest query overhead.
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{figures/latency_vs_scale.png}
+\caption{Average query latency vs. corpus scale for the three
+verification structures.}
+\label{fig:latency}
+\end{figure}
+
+As depicted in Figure~\ref{fig:fpr}, the false positive rate achieved by the Bloom filter at different scales was always near the configured 1 percent target rate, varying between 0.55 percent and 1.08 percent, with no false negatives ever being encountered. This means that the procedure for selecting parameters such as the bit array size and number of hash functions worked well and provided the expected false positive rate for all scales. 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{figures/false_positive_rate.png}
+\caption{Empirical Bloom filter false-positive rate vs. corpus scale,
+against the configured 1\% target.}
+\label{fig:fpr}
+\end{figure}
+
+The complete measurements, which include the construction time and 95th percentile latency, are presented in Table~\ref{tab:verification}.
+
+\begin{table}[h]
+\centering
+\caption{Verification performance across all six corpus scales}
+\label{tab:verification}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{llrrrr}
+\toprule
+Dataset & Method & Mem. (KB) & Avg. lat. ($\mu$s) & p95 lat. ($\mu$s) & FP rate \\
+\midrule
+10K (provided)   & Plain set    & 640      & 0.23 & 0.28 & -- \\
+                  & Bloom filter & 12.71   & 2.96 & 4.03 & 0.82\% \\
+                  & Trie         & 17{,}549 & 0.95 & 1.97 & -- \\
+100K (provided)  & Plain set    & 6{,}144  & 0.31 & 0.57 & -- \\
+                  & Bloom filter & 118.01  & 3.41 & 4.41 & 0.65\% \\
+                  & Trie         & 151{,}345 & 2.18 & 3.80 & -- \\
+50K (1M-sliced)  & Plain set    & 2{,}560  & 0.32 & 0.41 & -- \\
+                  & Bloom filter & 59.51   & 2.98 & 4.03 & 0.79\% \\
+                  & Trie         & 101{,}692 & 1.59 & 3.08 & -- \\
+100K (1M-sliced) & Plain set    & 6{,}144  & 0.26 & 0.44 & -- \\
+                  & Bloom filter & 118.00  & 3.11 & 4.33 & 0.57\% \\
+                  & Trie         & 186{,}041 & 2.08 & 3.78 & -- \\
+250K (1M-sliced) & Plain set    & 12{,}288 & 0.33 & 0.56 & -- \\
+                  & Bloom filter & 293.50  & 3.36 & 4.72 & 1.08\% \\
+                  & Trie         & 388{,}656 & 2.83 & 4.80 & -- \\
+1M (1M-sliced, full) & Plain set & 49{,}152 & 0.41 & 0.71 & -- \\
+                  & Bloom filter & 1{,}171.03 & 4.62 & 8.18 & 1.00\% \\
+                  & Trie         & 1{,}105{,}009 & 3.52 & 5.60 & -- \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\subsection{Distributed Deployment}
+Figure~\ref{fig:remap} displays the percentage of previously routed
+keys reassigned to a new node during the simulation where the
+cluster increased in size from eight nodes to nine nodes using
+consistent hashing and naive modulo hashing, over all four scales of
+routing loads examined. In each scale of load, consistent hashing
+re-mapped between 11.4 and 11.7 percent of keys, very close to the
+theoretical expectation of $1/9 \approx 11.1$ percent expected
+when one more node is added to an eight-node cluster. For
+identical conditions, the naive modulo hashing method remapped
+between 88.4 and 88.8 percent of keys, nearly the entire keyspace.
+This factor of around eight difference held true for every scale of
+load tried, indicating that the remapping benefit of consistent
+hashing is an inherent quality of the approach. In a large-scale
+distributed system, this decrease in key remapping leads to savings in
+data movement and network traffic during cluster expansion.
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{figures/remap_fraction.png}
+\caption{Fraction of keys remapped after adding a ninth node, for
+consistent hashing vs.\ naive modulo hashing, across routing-load
+scales.}
+\label{fig:remap}
+\end{figure}
+
+The Table \ref{tab:distributed} also includes latency of routing lookup,
+and in that regard the latency of naive modulo hashing (1.62–2.41 $\mu$s) was smaller than the latency of consistent hashing (2.24–2.75 $\mu$s), regardless of the scaling factor, because of the overhead associated
+with binary search in the case of hash ring.
+\begin{table}[h]
+\centering
+\caption{Distributed remapping and routing latency}
+\label{tab:distributed}
+\begin{tabular}{lrrr}
+\toprule
+Keys & Method & Remapped & Avg. lat. ($\mu$s) \\
+\midrule
+5{,}000   & Consistent hashing & 11.52\% & 2.75 \\
+          & Naive modulo       & 88.38\% & 2.41 \\
+20{,}000  & Consistent hashing & 11.44\% & 2.34 \\
+          & Naive modulo       & 88.46\% & 1.94 \\
+50{,}000  & Consistent hashing & 11.65\% & 2.24 \\
+          & Naive modulo       & 88.69\% & 2.04 \\
+100{,}000 & Consistent hashing & 11.64\% & 2.63 \\
+          & Naive modulo       & 88.77\% & 1.62 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Generation Performance}
+Figure~\ref{fig:gen_latency} shows average generation latency for all
+four methods at each of the three corpus sizes. Random suffix generation
+and Snowflake suffix generation remained the two fastest methods in terms
+of average latency under 10 $\mu$s for all three corpus sizes. The rule
+based approximation of the agentic method (refer Section~III-D)
+performed moderately slower than the above methods averaging between
+46--58 $\mu$s across all three corpus sizes due to its evaluation
+process of a fixed size candidate set that is not scale dependent.
+On the other hand, trie-based suggestion showed a much steeper
+increase with scale when compared to all other methods starting from
+12.5 $\mu$s average at 10,000 usernames, increasing to 110.9 $\mu$
+at 100,000 usernames, and then further to 2,218.4 $\mu$, nearly 2.2
+milliseconds, at 1,000,000 usernames, showing an approximate 178 times
+increase for a hundred times increase in the corpus size.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{figures/gen_latency.png}
+\caption{Average generation latency by method and corpus scale.}
+\label{fig:gen_latency}
+\end{figure}
+
+Automated readability index for each approach is illustrated in Figure~\ref{fig:gen_readability}. The highest automated readability index was obtained by the rule-based agentic approximation approach at all scales between 0.80 and 0.82 while the other three approaches scored in the range of 0.46 to 0.71 because this approach is the only one that chooses between different human-style
+transformation candidates.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{figures/gen_readability.png}
+\caption{Average readability score (0--1 heuristic) by method and
+corpus scale.}
+\label{fig:gen_readability}
+\end{figure}
+
+Figure~\ref{fig:gen_collision} demonstrates the first-guess collision rate
+for the three sequential-retry strategies. Suffix randomization and Snowflake style username generation both scored a first-guess collision rate of 0 percent
+at all scales. The first-guess collision rate for trie-suggestion
+grew slightly with scale from 1.7 percent at 10,000 users to
+2.7 percent at 1,000,000, despite the prefix-based nature of the
+guesses, because the larger corpus means even an educated first
+guess will likely be taken.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{figures/gen_first_guess_collision_rate.png}
+\caption{First-guess collision rate by method and corpus scale
+(sequential-retry methods only).}
+\label{fig:gen_collision}
+\end{figure}
 
 \begin{thebibliography}{00}
 \bibitem{b1} L. Luo, D. Guo, R. T. B. Ma, O. Rottenstreich, and X. Luo, ``Optimizing Bloom Filter: Challenges, Solutions, and Comparisons,'' \emph{arXiv preprint arXiv:1804.04777}, 2018.
