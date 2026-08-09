@@ -5,6 +5,7 @@
 
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
 \usepackage{algorithmic}
 \usepackage{graphicx}
 \usepackage{textcomp}
@@ -95,16 +96,95 @@ For the verification methods, several different measures were taken in each case
 
 For the distributed-deployment experiment, the important factor is the proportion of the keys that are reassigned to other nodes when the cluster size increases from eight to nine nodes. Consistent hashing and modulo-hashing approaches were compared under these conditions. In addition, average and 95th-percentile latencies for routing requests to nodes were collected. For the username generation methods, four metrics were collected for each corpus size: number of attempts to produce the username, the success rate, time needed to produce the username, and readability of the generated username.
 
+As the term “collision” has two different meanings in this study,
+both of which will be utilized, it is necessary that both meanings be explicitly defined. For the purposes of the verification experiment, the
+set $S$ is the set of existing user names within the corpus, while $Q$
+is the stream of query strings tested against a particular structure.
+The empirical false-positive rate is defined as
+\begin{equation}
+\text{FPR} = \frac{|\{x \in Q : x \notin S \text{ and } x \in
+\widehat{S}\}|}{|\{x \in Q : x \notin S\}|},
+\end{equation}
+where $\widehat{S}$ represents the set of strings reported by the
+structure as present, and the false-negative ratio is symmetrically
+given by
+\begin{equation}
+\text{FNR} = \frac{|\{x \in Q : x \in S \text{ and } x \notin
+\widehat{S}\}|}{|\{x \in Q : x \in S\}|}.
+\end{equation}
+
+In generation experiments, a \textit{generated-string collision} was defined differently from false positive in verification. Collision happened in case when the username obtained using generation technique turned out to be existing in the ground truth dataset after checking.
+In sequential-retry experiments using three methods: 
+random suffix generation, Snowflake-style suffix generation, 
+and  trie-based suggestion, the rate of first-guess collision
+over $N$ base name requests is defined as
+\begin{equation}
+\text{Collision Rate} = \frac{1}{N}\sum_{i=1}^{N} \mathbb{I}[
+\text{attempts}_i > 1],
+\end{equation}
+where $\text{attempts}_i$ refers to the number of candidate names the algorithm has to examine before finding one which does not collide with the request $i$. The above measure cannot be applied to the agentic-style approach. As opposed to the other approaches, this one measures
+a certain fixed set of candidates as opposed to generating usernames through sequential attempts. Hence, no artificial measure has been provided, and it is marked not applicable.
+
+The success rate of the generation technique on the same $N$ requests
+is expressed as 
+\begin{equation}
+\text{Success Rate} = \frac{1}{N}\sum_{i=1}^{N} \mathbb{I}[
+\text{result}_i \neq \text{None}],
+\end{equation}
+which is the ratio of requests where the technique successfully produced
+a username within its attempt limit, not exceeding the limit without success.
+
 \subsection{Data Collection Procedure}
-Since this study focuses on evaluating algorithms rather than human participants, no personal or identifiable user data was collected. Instead publicly available datasets with Twitter usernames were used. Three such datasets of varying sizes, with 10,000, 100,000, and 1,000,000 Twitter usernames, respectively, were chosen for testing.
+Since this study focuses on evaluating algorithms rather than human participants, no personal or identifiable user data was collected. Instead publicly available datasets with Twitter usernames were used. Three such datasets of varying sizes, with 10,000, 100,000, and 1,000,000 Twitter usernames, respectively, were chosen for testing. They were obtained from the Twitter Username Alias Dataset made available by McKelvey et al.\ \cite{b7}. It was originally assembled in support of research into aligning real names with self-selected online aliases on Twitter from Twitter user profiles. Every data file consists of one username per line, without any additional personal information or metadata beyond the username itself.
 
-The two data sets of 10,000 and 100,000 usernames were used diretly in the experiment. While, the 1,000,000 username dataset was used in two ways: in its entirety and as a source of sub-datasets of 50,000, 100,000, and 250,000 usernames. The latter was done by extracting the first usernames from the large dataset. The use of both the actual datasets and the sub-datasets from the largest dataset enabled the verification performance to be tested against increasing numbers of usernames.
+Table~\ref{tab:dataset-stats} provides the statistics about length and composition of each dataset. The mean length of usernames rises from 11.06 characters in both the 10,000 and 100,000 username datasets to 13.86 characters in the 1,000,000-username dataset, along with the standard
+deviation of length (from 2.59 to 3.49) and maximum length of usernames
+(from 15 to 25 characters). The proportion of usernames which include
+at least one digit is roughly doubled, from 26 percent in the two smaller
+datasets to 59 percent in the largest one, while the proportion of usernames containing an underscore rises almost three-fold, from 20 percent to 56 percent. The proportion of usernames which include an uppercase letter stays relatively stable, at around 52--53 percent for all three datasets.
 
-A stream of 20,000 candidate requests was created using the 1,000,000-usernames dataset to be used for measuring latency and false positives for the verification experiment. Twenty percent of these requests consist of usernames that are direct samples from the dataset, representing the case where a user requests a username that is already taken. The other eighty percent of these requests consist of base names extracted from other entries in the dataset by removing trailing digits and separator-separated suffixes (such as underscores and periods), representing the name a user would have typed without an extra suffix. For the generation experiment, base names were extracted in the same manner from a random sample of each of the three datasets separately, so that generation performance on each scale can be
-measured relative to names taken from that dataset.
+\begin{table}[h]
+\centering
+\caption{Dataset length and composition statistics}
+\label{tab:dataset-stats}
+\begin{tabular}{lrrr}
+\toprule
+ & 10K & 100K & 1M \\
+\midrule
+Count             & 10{,}000 & 100{,}000 & 1{,}000{,}000 \\
+Mean length       & 11.06    & 11.07     & 13.86 \\
+Median length     & 11        & 11        & 14 \\
+Std.\ dev.\ length & 2.59     & 2.58      & 3.49 \\
+Min / Max length  & 2 / 15    & 2 / 15    & 2 / 25 \\
+Contains digit    & 26.4\%   & 26.2\%    & 59.3\% \\
+Contains `\_'     & 19.6\%   & 19.7\%    & 55.5\% \\
+Contains uppercase & 52.4\%  & 53.1\%    & 53.1\% \\
+Duplicates        & 0        & 0         & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The two datasets of 10,000 and 100,000 usernames were used diretly in the experiment. While, the 1,000,000 username dataset was used in two ways: in its entirety and as a source of sub-datasets of 50,000, 100,000, and 250,000 usernames. The latter was done by extracting the first usernames from the large dataset. The use of both the actual datasets and the sub-datasets from the largest dataset enabled the verification performance to be tested against increasing numbers of usernames.
+
+A stream of 20,000 candidate requests was created using the 1,000,000-usernames dataset to be used for measuring latency and false positives for the verification experiment. Twenty percent of these requests consist of usernames that are direct samples from the dataset, representing the case where a user requests a username that is already taken. The other eighty percent of these requests consist of base names extracted from other entries in the dataset by removing trailing digits and separator-separated suffixes (such as underscores and periods), representing the name a user would have typed without an extra suffix. For the generation experiment, base names were extracted in the same manner from a random sample of each of the three datasets separately, so that generation performance on each scale can be measured relative to names taken from that dataset.
 
 \subsection{Data Processing and Analysis Tools}
 Every one of the six techniques was implemented as an individual Python module having a common interface. This enabled the same benchmarking setup to evaluate each technique under the same dataset and request conditions. All experiments were carried on a single machine running through one single Python process. To implement the algorithms, Python's standard library was used. While \textit{matplotlib} was used for plotting graphs and presenting the results.
+
+The Bloom filter that was utilized in all the experiments for verification was built from scratch, where the parameters were calculated automatically based on the expected number of items to be inserted. For an expected number of elements $n$, and for a desired false-positive probability of $p = 0.01$ (1 percent), the bit array size $m$ and the number of hash functions $k$ were calculated using the formulae
+\begin{equation}
+m = \left\lceil \frac{-n \ln p}{(\ln 2)^2} \right\rceil, \qquad
+k = \max\left(1, \text{round}\left(\frac{m}{n}\ln 2\right)\right).
+\end{equation}
+For example, at $n = 1{,}000{,}000$ and $p = 0.01$, this yields
+$m \approx 9{,}585{,}059$ bits ($\approx 1.14$ MB) and $k = 7$ hash
+functions. Instead of directly calculating $k$ independent hash functions,
+the implementation adopts the double hashing method of  Kirsch and Mitzenmacher \cite{b1} to calculate all the $k$ hash values from two base hashes, MD5 and SHA-1, where $h_i(x) = (h_1(x) + i
+\cdot h_2(x)) \bmod m$ for $i = 0, \dots, k-1$, thus eliminating the need for calculating seven different hash functions each time while retaining
+the property of independence essential for false-positive probability
+calculations.
+
+Add-only is the policy of addition where the filter allows for insertion and membership test, but not deletion, such that once a username is inserted, it is impossible to delete it from the filter other than to re-create the entire structure, which is the limitation of the Bloom filter, which is not considered in this study, since no experiment of username deletion or account deletion was conducted. No updates to any inserted element were done at any time during the experiments; the filters were built just once per corpus size.
 
 After loading the datasets, the benchmarking framework ran each method and automatically measured the relevant data. Various performance metrics like construction time, memory usage, query latency, collision ratio, remapping time, success ratio, and readability were captured in the experiments automatically. The query latency was measured using Python’s high-resolution performance counter, whereas memory usage was calculated using Python’s built-in memory trace utility.
 
@@ -124,6 +204,12 @@ Experimental results were saved in CSV files and analyzed using Python code. The
 \bibitem{b5} E. Fredkin, ``Trie Memory,'' \textit{Communications of the ACM}, vol. 3, no. 9, pp. 490--499, Sep. 1960.
 
 \bibitem{b6} F. Bijary, M. Ebadpour, and A. Tajbakhsh, ``Agentic Username Suggestion and Multimodal Gender Detection in Online Platforms: Introducing the PNGT-26K Dataset,'' \textit{arXiv preprint arXiv:2509.11136}, Sep. 2025.
+
+\bibitem{b7} K. McKelvey, P. Goutzounis, S. da Cruz, and N. Chambers,
+``Aligning Entity Names with Online Aliases on Twitter,'' in
+\textit{Proc. 5th Int. Workshop on Natural Language Processing for
+Social Media (SocialNLP@EACL 2017)}, Valencia, Spain, Apr. 2017,
+pp. 25--35.
 
 \end{thebibliography}
 
