@@ -195,6 +195,21 @@ The two datasets of 10,000 and 100,000 usernames were used diretly in the experi
 A stream of 20,000 candidate requests was created using the 1,000,000-usernames dataset to be used for measuring latency and false positives for the verification experiment. Twenty percent of these requests consist of usernames that are direct samples from the dataset, representing the case where a user requests a username that is already taken. The other eighty percent of these requests consist of base names extracted from other entries in the dataset by removing trailing digits and separator-separated suffixes (such as underscores and periods), representing the name a user would have typed without an extra suffix. For the generation experiment, base names were extracted in the same manner from a random sample of each of the three datasets separately, so that generation performance on each scale can be measured relative to names taken from that dataset.
 
 \subsection{Data Processing and Analysis Tools}
+All tests conducted for this paper were run on one single computer
+host with an AMD Ryzen 5 5500U CPU (6 cores, 12 threads), 7.33\,GB
+of RAM, running Microsoft Windows 11 Home Single Language (build
+10.0.26200) and Python 3.12.3. No GPU has been used since none of
+the six tested methods use GPU acceleration. All the tests were done
+in one single process in Python with no parallelization or
+multi-threading, such that the latencies and throughputs reported
+refer to a single-threaded performance on this computer and not a
+parallelized multi-core environment. Thus, the latency, throughput,
+and memory requirements reported in this paper should be considered
+implementation-specific and hardware-specific rather than as general
+values independent of the execution environment. However, since all
+tests were done under identical hardware and process conditions, the
+comparison between the six methods is not affected.
+
 Every one of the six techniques was implemented as an individual Python module having a common interface. This enabled the same benchmarking setup to evaluate each technique under the same dataset and request conditions. All experiments were carried on a single machine running through one single Python process. To implement the algorithms, Python's standard library was used. While \textit{matplotlib} was used for plotting graphs and presenting the results.
 
 The Bloom filter that was utilized in all the experiments for verification was built from scratch, where the parameters were calculated automatically based on the expected number of items to be inserted. For an expected number of elements $n$, and for a desired false-positive probability of $p = 0.01$ (1 percent), the bit array size $m$ and the number of hash functions $k$ were calculated using the formulae
@@ -205,7 +220,7 @@ k = \max\left(1, \text{round}\left(\frac{m}{n}\ln 2\right)\right).
 For example, at $n = 1{,}000{,}000$ and $p = 0.01$, this yields
 $m \approx 9{,}585{,}059$ bits ($\approx 1.14$ MB) and $k = 7$ hash
 functions. Instead of directly calculating $k$ independent hash functions,
-the implementation adopts the double hashing method of Kirsch and Mitzenmacher \cite{b1}. All $k$ hash values are calculated all from two base hashes, MD5 and SHA-1, where $h_i(x) = (h_1(x) + i
+the implementation adopts the double hashing method of Kirsch and Mitzenmacher \cite{b8}. All $k$ hash values are calculated all from two base hashes, MD5 and SHA-1, where $h_i(x) = (h_1(x) + i
 \cdot h_2(x)) \bmod m$ for $i = 0, \dots, k-1$, thus eliminating the need for calculating seven different hash functions each time while retaining
 the property of independence essential for false-positive probability
 calculations. 
@@ -392,7 +407,42 @@ guess will likely be taken.
 \end{figure}
 
 \section{Discussion}
+The experimental results indicate that the techniques studied in this paper optimize various facets of the username registration problem. Instead of finding a single best solution for the problem, it has been revealed that
+enhancements in one aspect of the problem come at the cost of degradation in other aspects.
 
+When it comes to verification, while a Bloom filter enjoys a
+significant memory savings over a bare set and a trie by a factor
+of roughly 41 and 923, respectively, it suffers from a nonzero but
+highly controllable false-positive rate and a highest latency among
+the three data structures used (Figures~\ref{fig:memory} and
+\ref{fig:latency}). As such, it is better suited to memory-limited
+deployments with a tolerance of a bounded number of false positives
+by checking against a more authoritative source, which was precisely
+its intended purpose within a registration pipeline, and not as a
+stand-in for exact verification. On the other hand, a trie provides
+exact results and supports the prefix-aware lookups, which are not
+possible with a Bloom filter, although it is the most expensive in
+terms of memory among the three, scaling fastest and using over a
+gigabyte for 1,000,000 usernames.
+
+In the context of deployment through distribution, the remapping benefit that consistent hashing has over the more simple modulo-based hashing (Figure~\ref{fig:remap}) was large, nearly eight times, and also scale-independent, directly verifying the feature proven analytically by Karger et al.\ \cite{b3}. The single negative noted about this method was a marginal increase in lookup time, but this seems to be an acceptable price for not invalidating almost the entire cache/shard when adding/removing nodes.
+
+Regarding generation, while the results indicate some tension
+between speed/certainty and readability, they indicate that the most
+efficient methods of generation are random suffixes and Snowflake,
+which are also collision-free, while being the slowest methods in terms
+of readability as both are based on a process of adding an
+arbitrary numerical or alphanumeric sequence rather than picking from a
+set of styled names. The scale sensitivity of trie-based suggestion is
+the most pronounced result of the experiment shown in Figure
+\ref{fig:gen_latency}, where the latency grows significantly with
+scale and suggests that trie-based suggestion might become a
+poor choice for username suggestion due to its high sensitivity to scale
+unless further optimization like prefix count compression or limitation
+is considered. In terms of readability, the rule-based approximation of
+the agentic method yielded the best score at each scale level while still being the faster method than trie suggestion at maximum scale considered as shown in Figure \ref{fig:gen_readability}.
+
+When all of these results are combined, it becomes evident that a workload-dependent approach should be recommended, rather than one optimal technique. In other words, a production registration system that seeks to ensure efficient performance with low memory usage and negative lookups needs to use a combination of Bloom filters and consistent hashing, with generation being done through the combination of a fast and collision-free method, like the Snowflake-style suffixing and readability-friendly approach, either based on the rule-based system used herein or LLM-based, depending on which one works better, being recommended first, with trie-based suggestions being reserved only for limited corpora.
 
 \begin{thebibliography}{00}
 \bibitem{b1} L. Luo, D. Guo, R. T. B. Ma, O. Rottenstreich, and X. Luo, ``Optimizing Bloom Filter: Challenges, Solutions, and Comparisons,'' \emph{arXiv preprint arXiv:1804.04777}, 2018.
@@ -412,6 +462,10 @@ guess will likely be taken.
 \textit{Proc. 5th Int. Workshop on Natural Language Processing for
 Social Media (SocialNLP@EACL 2017)}, Valencia, Spain, Apr. 2017,
 pp. 25--35.
+
+\bibitem{b8} A. Kirsch and M. Mitzenmacher, ``Less Hashing, Same
+Performance: Building a Better Bloom Filter,'' \textit{Random
+Structures \& Algorithms}, vol. 33, no. 2, pp. 187--218, 2008.
 
 \end{thebibliography}
 
