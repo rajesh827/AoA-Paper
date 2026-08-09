@@ -31,6 +31,15 @@ nce080bct048@nce.edu.np}
 
 \maketitle
 
+\begin{abstract}
+With growing user numbers on platforms the management of unique and user friendly usernames has become a challenge. Usernames systems need to be able to generate meaningful usernames, while also being able to check username availability rapidly and effectively handle many concurrent requests.
+A variety of algorithms have been proposed in literature to address these issues, however, these algorithms are mostly investigated individually and under specific circumstances and a single ``best'' username system algorithm to address a high-volume of users is difficult to pinpoint. In this study, six usernames generation techniques - Random Suffix Generation, Trie-based Suggestion, Snowflake-like Suffix Generation, Agentic Username Generation, Bloom Filter and Consistent Hashing are evaluated using varying username records sizes from 10,000 to 1,000,000. Tests were performed on a range of metrics including latency, memory usage, uniqueness, generation success rate, usability and distribution cost when generating and distributing username accounts across many distributed servers. All six usernames generation techniques were run on a similar environment so that each algorithm could be fairly tested against one another. This study sets out to compare each method, to investigate the pros and cons of each; while also investigating how each usernames generation technique performs under growing user numbers and which to use singly or in combination with other algorithms for managing large-scale username generation and verification systems. Username systems andusername generation algorithms play a vital role in modern platforms.
+\end{abstract}
+
+\begin{IEEEkeywords}
+component, formatting, style, styling, insert.
+\end{IEEEkeywords}
+
 
 \section{Introduction}
 Today, we live in the 21st century, which is the age of technology development and digitization around the world. There are more than 8 billion people living all over the world and each year millions of new users start to use the Internet, and that's why today digital identity is extremely important.
@@ -381,6 +390,9 @@ guess will likely be taken.
 (sequential-retry methods only).}
 \label{fig:gen_collision}
 \end{figure}
+
+\section{Discussion}
+
 
 \begin{thebibliography}{00}
 \bibitem{b1} L. Luo, D. Guo, R. T. B. Ma, O. Rottenstreich, and X. Luo, ``Optimizing Bloom Filter: Challenges, Solutions, and Comparisons,'' \emph{arXiv preprint arXiv:1804.04777}, 2018.
