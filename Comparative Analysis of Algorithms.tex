@@ -14,7 +14,8 @@
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
 
-\title{Comparative Analysis of Algorithms for Unique Username Generation and Verification at Scale}
+\title{Comparative Analysis of Algorithms for Unique Username Generation
+and Verification at Scale: A Simulation-Based Benchmark Study}
 
 \author{\IEEEauthorblockN{1\textsuperscript{st} Rajesh Bhandari}
 \IEEEauthorblockA{\textit{Department of Computer Engineering} \\
@@ -33,7 +34,22 @@ nce080bct048@nce.edu.np}
 
 \begin{abstract}
 With growing user numbers on platforms the management of unique and user friendly usernames has become a challenge. Usernames systems need to be able to generate meaningful usernames, while also being able to check username availability rapidly and effectively handle many concurrent requests.
-A variety of algorithms have been proposed in literature to address these issues, however, these algorithms are mostly investigated individually and under specific circumstances and a single ``best'' username system algorithm to address a high-volume of users is difficult to pinpoint. In this study, six usernames generation techniques - Random Suffix Generation, Trie-based Suggestion, Snowflake-like Suffix Generation, Agentic Username Generation, Bloom Filter and Consistent Hashing are evaluated using varying username records sizes from 10,000 to 1,000,000. Tests were performed on a range of metrics including latency, memory usage, uniqueness, generation success rate, usability and distribution cost when generating and distributing username accounts across many distributed servers. All six usernames generation techniques were run on a similar environment so that each algorithm could be fairly tested against one another. This study sets out to compare each method, to investigate the pros and cons of each; while also investigating how each usernames generation technique performs under growing user numbers and which to use singly or in combination with other algorithms for managing large-scale username generation and verification systems. Username systems and username generation algorithms play a vital role in modern platforms.
+A variety of algorithms have been proposed in literature to address these issues, however, these algorithms are mostly investigated individually and under specific circumstances and a single ``best'' username system algorithm to address a high-volume of users is difficult to pinpoint. In this study, six usernames generation techniques - Random Suffix Generation, Trie-based Suggestion, Snowflake-like Suffix Generation, Agentic Username Generation, Bloom Filter and Consistent Hashing are evaluated using varying username records sizes from 10,000 to 1,000,000. Tests were performed on a range of metrics including latency, memory usage, uniqueness, usability and distribution cost when generating and distributing username accounts across many distributed servers. Important observations include: the Bloom filter takes up 41$\times$ less memory than a basic hash set,
+as well as 923$\times$ less than the non-compressed trie for
+1,000,000 usernames at the expense of a managed false-positive rate
+at around its target of 1\%; consistent hashing re-maps only 11.4--11.7\%
+of keys in response to adding a new node, compared to 88.4--88.8\%
+for naive modulo hashing; and the latency of suggestion by tries scales
+about 178$\times$ upon a 100$\times$ increase in corpus size because of
+an unoptimized prefix counting function. The key drawback of this study
+is that the agentic approach is an implementation of a deterministic
+rule-based simulator, rather than a real-life large language model, and
+thus its outcomes should be treated as a conservative estimate, rather
+than actual measurements of the LLM-based generation process.
+This paper's novelty does not lie in any individual algorithms but
+rather in a common, task-aware testing framework and a reproducible benchmark that allows practitioners to choose proper combinations of
+generation and verification methods according to the scale of their deployment,
+not just according to the performance of each algorithm separately.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -96,12 +112,81 @@ Though earlier work has been done on these methods, no existing work compares th
 \subsection{Theoretical Framework and Justification}
 This paper is based on the observation made in the literature that the methods of generating and verifying usernames have been analyzed separately. Furthermore, these techniques have often been evaluated only in terms of other goals than those that are relevant to the problem of username registration. For example, Bloom filters and the technique of consistent hashing have been designed and evaluated for general-purpose caching and set representation \cite{b1,b2,b3}. Similarly, the stateless Snowflake approach has been developed to generate unique identifiers in distributed environments such as container orchestration systems \cite{b4}. The Trie data structure has been developed for general information storage and retrieval purposes \cite{b5}, while the agent-based recommendation framework has been tested on gender recognition capabilities rather than on system-level deployment costs \cite{b6}. Therefore, there is no common conceptual framework, which can be used for the comparison between the techniques, as they have been developed in various spheres of the computer science with a variety of criteria for their effectiveness.
 
-To ensure a fair comparison, this paper relies upon a single multi-dimensional evaluation framework. The framework is based strictly on the necessities of username registration systems discovered during the comprehensive review. The evaluated criteria include query latency, memory consumption, collison rate and how easy it is for humans to remember and read generated usernames. Finally, it evaluates whether a technique is suitable for deployemnt across multiple sites. The six techniques under consideration are random suffix generation, Trie-based suggestion, Snowflake-like suffix generation, agentic username generation, Bloom filter pre-filtering, and consistent hashing. Each technique is treated as a black-box module within a username registration system. It can perform one of two functions. The first is the \textit{generation} function, which proposes a candidate username. The second is the \textit{verification/distribution} function, which determines whether the proposed username is available or not. In distributed environments, this function also identifies the node responsible for handling the verification request. The strength of this approach is based on that, in reality, username registration systems are not dependent on a single approach. Usually, they use a username generation method coupled with a verification method. Because of this, assessing both kinds under a common set of metrics makes for a more accurate comparison. Such a comparison allows one to detect not only the fastest method at a time but also the best combinations of methods for different deployment scenarios.
+To ensure a fair comparison, this paper relies upon a single multi-dimensional evaluation framework. The framework is based strictly on the necessities of username registration systems discovered during the comprehensive review. The evaluated criteria include query latency, memory consumption, collision rate and how easy it is for humans to remember and read generated usernames.
+They were chosen since each of them relates to some cost incurred by a real-world registration system. Both mean and 95th percentile latencies were chosen since they define how responsive the registration process will feel to
+a user; mean latency is responsible for normal-case costs, while
+p95 latency highlights the nearly worst-case performance that
+can be missed by mean latency due to a possibility of one
+slow outlier to impact a user experience when registration
+peaks. Memory usage was chosen as the major cost of
+infrastructure needed for verification structures, especially
+for those that need to be stored in memory in several
+servers. Success rate was chosen since the generation
+process that fails to create a suitable name often enough is
+not practical no matter how efficient in other ways it is. Collision rate was selected because it is the most direct
+measurement of how effectively an algorithm avoids the actual
+problem this paper seeks to address, that of name collision. It is defined differently for verification
+(a false positive) and for generation (a candidate name that is found
+to already exist), as the two different tests examine different
+fundamental operations. Readability was selected because an
+algorithmically unique, but difficult to read or memorize, username, such
+as a random alphanumeric string, is imposing a cost on the user despite
+perfectly satisfying the uniqueness requirement; there is no other
+algorithmic measurement that addresses this cost. Distributed deployment
+was selected because username systems are increasingly distributed across
+multiple machines or datacenters, and a measure of a technique's
+distributed-deployment efficiency, specifically how much state needs to be
+recreated when scaled out to a cluster, does not emerge at all from a
+single-machine test.
+
+Finally, it evaluates whether a technique is suitable for deployment across multiple sites. The six techniques under consideration are random suffix generation, Trie-based suggestion, Snowflake-like suffix generation, agentic username generation, Bloom filter pre-filtering, and consistent hashing. Each technique is treated as a black-box module within a username registration system. It can perform one of two functions. The first is the \textit{generation} function, which proposes a candidate username. The second is the \textit{verification/distribution} function, which determines whether the proposed username is available or not. 
+
+Since these six techniques have different functions, an evaluation of the
+techniques based on one undifferentiated scale will be deceptive;
+Table~\ref{tab:taskmatrix} highlights which function each of these
+techniques serves and the evaluation criteria relevant to its
+functioning. A technique can be judged only on those criteria which are
+relevant to the output produced by the technique; criteria which are
+not relevant for the function performed by a particular technique will
+be deemed as non-applicable.
+
+\begin{table}[h]
+\centering
+\caption{Task-specific evaluation matrix}
+\label{tab:taskmatrix}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+Method & Role & Latency & Memory & Collision & Readability \\
+\midrule
+Random suffix     & Generation & \checkmark & n/a & \checkmark & \checkmark \\
+Snowflake-style   & Generation & \checkmark & n/a & \checkmark & \checkmark \\
+Trie suggestion   & Generation & \checkmark & \checkmark & \checkmark & \checkmark \\
+Agentic (rule-based) & Generation & \checkmark & n/a & n/a & \checkmark \\
+Bloom filter      & Verification & \checkmark & \checkmark & \checkmark (FP rate) & n/a \\
+Consistent hashing & Distribution & \checkmark & n/a & n/a & n/a \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+This table makes clear that the six techniques are not all interchangeable:
+the bloom filter and consistent hashing are used to perform the
+verification/distribution function and can be combined naturally in
+an industrial pipeline process, whereas the four methods for
+generation of names are competing alternatives for the distinct job
+of proposing an eligible name. This comparison in this paper is
+therefore not “which one technique is better” but rather
+“which technique is better for its function, and which pair of
+functions is consistent,” consistent with the workload-dependent
+recommendation made in the Discussion.
+
+In distributed environments, this function also identifies the node responsible for handling the verification request. The strength of this approach is based on that, in reality, username registration systems are not dependent on a single approach. Usually, they use a username generation method coupled with a verification method. Because of this, assessing both kinds under a common set of metrics makes for a more accurate comparison. Such a comparison allows one to detect not only the fastest method at a time but also the best combinations of methods for different deployment scenarios.
 
 \subsection{Research Design}
 This paper presents simulation-based experiments to compare different username generation, verification, and distribution techniques. Unlike survey or observation, the focus is on measuring the performance of algorithms rather than analyzing human behavior. In order to make comparisons unbiased, all six techniques are implemented in the same experimental environment. The data structures Bloom filter, Trie, and consistent hash ring were implemented from scratch. A simple modulo-hashing approach was also developed for comparison.
 
-The primary variable considered in this study is the \textit{corpus scale}, defined as the number of existing usernames in the system. Three real-world datasets of different sizes (10,000, 100,000, and 1,000,000 usernames) were used throughout the experiments. To investigate how performance changes as the dataset grows, the 1,000,000 username dataset was also splitted into smaller subsets of 50,000, 100,000, and 250,000 usernames. Six corpus scales were used for evaluation of verification techniques. The original 10,000 and 100,000 username datasets were used in the experiments. In addition, subsets of 50,000, 100,000, and 250,000 usernames were extracted from the 1,000,000-username dataset. The full 1,000,000-username dataset was also included. This allowed the effect of increasing corpus size on verification performance to be studied. Distributed-deployment methods were examined using corpus scales of 5,000, 20,000, 50,000, and 100,000 keys. This was done to analyze how the remapping overhead varied with the number of keys being routed. Username generation methods were tested with 10,000, 100,000 and 1,000,000 username datasets. 
+The primary variable considered in this study is the \textit{corpus scale}, defined as the number of existing usernames in the system. Three real-world datasets of different sizes (10,000, 100,000, and 1,000,000 usernames) were used throughout the experiments. To investigate how performance changes as the dataset grows, the 1,000,000 username dataset was also split into smaller subsets of 50,000, 100,000, and 250,000 usernames. Six corpus scales were used for evaluation of verification techniques. The original 10,000 and 100,000 username datasets were used in the experiments. In addition, subsets of 50,000, 100,000, and 250,000 usernames were extracted from the 1,000,000-username dataset. The full 1,000,000-username dataset was also included. This allowed the effect of increasing corpus size on verification performance to be studied. Distributed-deployment methods were examined using corpus scales of 5,000, 20,000, 50,000, and 100,000 keys. This was done to analyze how the remapping overhead varied with the number of keys being routed. Username generation methods were tested with 10,000, 100,000 and 1,000,000 username datasets. 
 
 For the verification methods, several different measures were taken in each case of a different corpus sizes. In particular, there was the measure of the construction time, which is how much time it took to create the data structure, the amount of maximum memory usage when creating the structure, and the username lookup time. Username lookup latency was measured using both the average response time and the 95th-percentile response time for the candidate request set. For the Bloom filter, false-positive and false-negative rates were computed and compared against the actual dataset.
 
@@ -192,7 +277,7 @@ Duplicates        & 0        & 0         & 0 \\
 \end{tabular}
 \end{table}
 
-The two datasets of 10,000 and 100,000 usernames were used diretly in the experiment. While, the 1,000,000 username dataset was used in two ways: in its entirety and as a source of sub-datasets of 50,000, 100,000, and 250,000 usernames. The latter was done by extracting the first usernames from the large dataset. The use of both the actual datasets and the sub-datasets from the largest dataset enabled the verification performance to be tested against increasing numbers of usernames.
+The two datasets of 10,000 and 100,000 usernames were used directly in the experiment. While, the 1,000,000 username dataset was used in two ways: in its entirety and as a source of sub-datasets of 50,000, 100,000, and 250,000 usernames. The latter was done by extracting the first usernames from the large dataset. The use of both the actual datasets and the sub-datasets from the largest dataset enabled the verification performance to be tested against increasing numbers of usernames.
 
 A stream of 20,000 candidate requests was created using the 1,000,000-usernames dataset to be used for measuring latency and false positives for the verification experiment. Twenty percent of these requests consist of usernames that are direct samples from the dataset, representing the case where a user requests a username that is already taken. The other eighty percent of these requests consist of base names extracted from other entries in the dataset by removing trailing digits and separator-separated suffixes (such as underscores and periods), representing the name a user would have typed without an extra suffix. For the generation experiment, base names were extracted in the same manner from a random sample of each of the three datasets separately, so that generation performance on each scale can be measured relative to names taken from that dataset.
 
@@ -240,7 +325,11 @@ by the types of transformations used by Bijary et al. in their creator
 agent \cite{b6}. 
 
 This was done since integrating a live LLM call may introduce variability
-and non-deterministic outputs. Thus, the results achieved in this case with the agentic style approach need to be considered as an estimate of what such a language model might be able to achieve. Indeed, an actual language model could provide a variety of more appropriate username proposals than any preset rules, yet this assumption was not tested in the current study. Indeed, an actual language model could provide a variety of more appropriate username proposals than any preset rules.
+and non-deterministic outputs. Thus, the results achieved in this case with the agentic style approach need to be considered as an estimate of what such a language model might be able to achieve. Certainly, a real language model could offer a number of more appropriate
+suggestions for usernames than any fixed set of rules, but this was not
+verified in this current research. Thus, any statement made in this paper regarding the readability, latency or other performance metrics of the
+``agentic'' approach must not be interpreted as applying specifically to large language models, since any such findings are only specific to this
+study’s deterministic and rule-based implementation of one piece of Nominalist methodology \cite{b6}.
 
 After loading the datasets, the benchmarking framework ran each method and automatically measured the relevant data. Various performance metrics like construction time, memory usage, query latency, collision ratio, remapping time, success ratio, and readability were captured in the experiments automatically. The query latency was measured using Python’s high-resolution performance counter, whereas memory usage was calculated using Python’s built-in memory trace utility.
 
@@ -258,7 +347,7 @@ Figure~\ref{fig:memory} shows the maximum memory usage for the plain hash set, B
 \label{fig:memory}
 \end{figure}
 
-The average query latency for each structure is depicted in Figure~\ref{fig:latency}. The plain set gave the lowest query latencies (0.208--0.521$\mu$s) among all scales tested, while the trie structure gave an intermediate level (1.423--4.499 $\mu$s), and the Bloom filter had the largest (3.901--9.386 $\mu$s). The reason behind this is that the queries to the Bloom filter involve the calculation of multiple hash values, not just the dictionary lookups. This is the opposite order to the one in the memory requirements: the structure taking the least amount of memory space has the highest query overhead.
+The average query latency for each structure is depicted in Figure~\ref{fig:latency}. The plain set gave the lowest query latencies (0.23--0.41$\mu$s) among all scales tested, while the trie structure gave an intermediate level (0.95--3.52 $\mu$s), and the Bloom filter had the largest (2.96--4.62 $\mu$s). The reason behind this is that the queries to the Bloom filter involve the calculation of multiple hash values, not just the dictionary lookups. This is the opposite order to the one in the memory requirements: the structure taking the least amount of memory space has the highest query overhead.
 \begin{figure}[h]
 \centering
 \includegraphics[width=\columnwidth]{figures/latency_vs_scale.png}
@@ -436,9 +525,11 @@ unless further optimization like prefix count compression or limitation
 is considered. In terms of readability, the rule-based approximation of
 the agentic method yielded the best score at each scale level while still being the faster method than trie suggestion at maximum scale considered as shown in Figure \ref{fig:gen_readability}.
 
-When all of these results are combined, it becomes evident that a workload-dependent approach should be recommended, rather than one optimal technique. In other words, a production registration system that seeks to ensure efficient performance with low memory usage. With regard to verification and routing, the findings suggest that Bloom filters and consistent hashing are the best options in terms of memory efficiency,scalability, and lookup performance. Username generation can involve the use of a fast and collision-resistant algorithm like the Snowflake algorithm suffix, along with a readable algorithm for enhanced quality of the username generated. In terms of the readability feature, it is possible to choose from two
-options, which include the rule-based method considered in this research paper or the LLM-based system. Trie-based proposals should be used only when
-working with small corpora due to increased memory usage.
+When all of these results are combined, it becomes evident that a workload-dependent approach should be recommended, rather than one optimal technique. In other words, a production registration system that seeks to ensure efficient performance with low memory usage. With regard to verification and routing, the findings suggest that Bloom filters and consistent hashing are the best options in terms of memory efficiency,scalability, and lookup performance. Username generation can involve the use of a fast and collision-resistant algorithm like the Snowflake algorithm suffix, along with a readable algorithm for enhanced quality of the username generated. Regarding the readability aspect, the findings of this research
+directly confirm the validity of the rule-based approach being considered;
+whether an actual LLM-based one would yield even better results
+remains an open question based on the Nominalist design \cite{b6},
+but it cannot be confirmed due to the lack of actual LLM use. Trie-based proposals should be used only when working with small corpora due to increased memory usage.
 
 \begin{thebibliography}{00}
 \bibitem{b1} L. Luo, D. Guo, R. T. B. Ma, O. Rottenstreich, and X. Luo, ``Optimizing Bloom Filter: Challenges, Solutions, and Comparisons,'' \emph{arXiv preprint arXiv:1804.04777}, 2018.
